@@ -86,67 +86,62 @@ def main():
     st.progress(progress)
     st.write(f"Frage {question_index + 1} von {len(quiz_data)}")
 
-    # Display Image
     # Construct absolute path to assets to ensure it works
     current_dir = os.path.dirname(os.path.abspath(__file__))
     image_path = os.path.join(current_dir, question_data["image_path"])
     
     if os.path.exists(image_path):
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
+        # Create a central column for all content to ensure alignment
+        col1, content_col, col3 = st.columns([1, 2, 1])
+        
+        with content_col:
             st.image(image_path, use_container_width=True)
+            
+            # Display Question inside the same column
+            st.markdown(f"<div class='question-text'>{question_data['question']}</div>", unsafe_allow_html=True)
+
+            # Feedback Display
+            if st.session_state.feedback:
+                if st.session_state.feedback["type"] == "success":
+                    st.success(st.session_state.feedback["message"])
+                else:
+                    st.error(st.session_state.feedback["message"])
+
+            # Buttons in a 2x2 grid inside the content column
+            options = question_data["options"]
+            btn_col1, btn_col2 = st.columns(2)
+
+            def check_answer(selected_option):
+                correct = selected_option == question_data["correct_answer"]
+                if correct:
+                    st.session_state.score += 1
+                    st.session_state.feedback = {"type": "success", "message": "Richtig! 🎉"}
+                    
+                    # Move to next question
+                    if st.session_state.current_question < len(quiz_data) - 1:
+                        st.session_state.current_question += 1
+                        st.session_state.feedback = None # Clear it for the next question to avoid confusion
+                        st.toast("Richtig! 🎉", icon="✅") 
+                    else:
+                        st.session_state.game_over = True
+                else:
+                    st.session_state.feedback = {"type": "error", "message": "Falsch! Versuch es nochmal."}
+                
+                st.rerun()
+
+            with btn_col1:
+                if st.button(options[0], use_container_width=True):
+                    check_answer(options[0])
+                if st.button(options[2], use_container_width=True):
+                    check_answer(options[2])
+
+            with btn_col2:
+                if st.button(options[1], use_container_width=True):
+                    check_answer(options[1])
+                if st.button(options[3], use_container_width=True):
+                    check_answer(options[3])
     else:
         st.error(f"Bild nicht gefunden: {question_data['image_path']}")
-
-    # Display Question
-    st.markdown(f"<div class='question-text'>{question_data['question']}</div>", unsafe_allow_html=True)
-
-    # Feedback Display
-    if st.session_state.feedback:
-        if st.session_state.feedback["type"] == "success":
-            st.success(st.session_state.feedback["message"])
-        else:
-            st.error(st.session_state.feedback["message"])
-
-    # Feedback area (for previous question if needed, or immediate feedback)
-    # In Quizduell, you usually see if you were right/wrong immediately.
-    # Here we will show the options.
-
-    options = question_data["options"]
-    
-    # Create 2 columns for the 4 buttons directly (no spacers)
-    # This allows them to fill the width on mobile and be centered on desktop (due to layout="centered")
-    col1, col2 = st.columns(2)
-
-    def check_answer(selected_option):
-        correct = selected_option == question_data["correct_answer"]
-        if correct:
-            st.session_state.score += 1
-            st.session_state.feedback = {"type": "success", "message": "Richtig! 🎉"}
-            
-            # Move to next question
-            if st.session_state.current_question < len(quiz_data) - 1:
-                st.session_state.current_question += 1
-                st.session_state.feedback = None # Clear it for the next question to avoid confusion
-                st.toast("Richtig! 🎉", icon="✅") # Keep toast for positive reinforcement as it's less intrusive
-            else:
-                st.session_state.game_over = True
-        else:
-            st.session_state.feedback = {"type": "error", "message": "Falsch! Versuch es nochmal."}
-        
-        st.rerun()
-
-    with col1:
-        if st.button(options[0]):
-            check_answer(options[0])
-        if st.button(options[2]):
-            check_answer(options[2])
-
-    with col2:
-        if st.button(options[1]):
-            check_answer(options[1])
-        if st.button(options[3]):
-            check_answer(options[3])
 
     # Score display
     st.markdown(f"<div class='score-board'>Aktueller Punktestand: {st.session_state.score}</div>", unsafe_allow_html=True)
