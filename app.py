@@ -24,9 +24,16 @@ def main():
         <style>
         .stButton button {
             width: 100%;
-            height: 30px;
-            font-size: 9px;
+            height: auto !important;
+            min-height: 80px;
+            font-size: 16px;
             margin-bottom: 10px;
+            white-space: normal !important;
+            word-wrap: break-word;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
         }
         .question-text {
             font-size: 24px;
@@ -85,7 +92,7 @@ def main():
     image_path = os.path.join(current_dir, question_data["image_path"])
     
     if os.path.exists(image_path):
-        col1, col2, col3 = st.columns([1, 1, 1])
+        col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.image(image_path, use_container_width=True)
     else:
@@ -107,59 +114,39 @@ def main():
 
     options = question_data["options"]
     
-    # Create centered columns for the 4 buttons
-    # We use the same ratio as the image to align them
-    c1, c2, c3 = st.columns([1, 3, 1])
-    
-    with c2:
-        # Create 2 columns for the 4 buttons INSIDE the center column
-        col1, col2 = st.columns(2)
+    # Create 2 columns for the 4 buttons directly (no spacers)
+    # This allows them to fill the width on mobile and be centered on desktop (due to layout="centered")
+    col1, col2 = st.columns(2)
 
-        def check_answer(selected_option):
-            correct = selected_option == question_data["correct_answer"]
-            if correct:
-                st.session_state.score += 1
-                st.session_state.feedback = {"type": "success", "message": "Richtig! 🎉"}
-                
-                # Move to next question
-                if st.session_state.current_question < len(quiz_data) - 1:
-                    st.session_state.current_question += 1
-                    # Clear feedback for next question? Or keep it briefly?
-                    # Usually we want to see "Correct" then move on. 
-                    # But since we rerun, the next question appears immediately.
-                    # Maybe we should clear feedback if we move to next question?
-                    # Actually, user might want to see "Correct" on the NEW question screen? 
-                    # No, that's confusing. 
-                    # Let's keep it simple: If correct, we move on. 
-                    # If we move on, maybe we shouldn't show "Correct" for the *new* question.
-                    # But the user asked for persistent feedback.
-                    # Let's show "Richtig!" on the *next* screen for a moment?
-                    # Or maybe we just clear it because the question changed.
-                    # Wait, if we move to next question, the feedback "Richtig" might refer to the previous one.
-                    # Let's try clearing it for now, as the question change is feedback enough.
-                    # BUT, the user asked for "Richtig!" toast before.
-                    # Let's set it, but maybe it will be confusing if it shows up under the new question.
-                    # Let's try showing it.
-                    st.session_state.feedback = None # Clear it for the next question to avoid confusion
-                    st.toast("Richtig! 🎉", icon="✅") # Keep toast for positive reinforcement as it's less intrusive
-                else:
-                    st.session_state.game_over = True
-            else:
-                st.session_state.feedback = {"type": "error", "message": "Falsch! Versuch es nochmal."}
+    def check_answer(selected_option):
+        correct = selected_option == question_data["correct_answer"]
+        if correct:
+            st.session_state.score += 1
+            st.session_state.feedback = {"type": "success", "message": "Richtig! 🎉"}
             
-            st.rerun()
+            # Move to next question
+            if st.session_state.current_question < len(quiz_data) - 1:
+                st.session_state.current_question += 1
+                st.session_state.feedback = None # Clear it for the next question to avoid confusion
+                st.toast("Richtig! 🎉", icon="✅") # Keep toast for positive reinforcement as it's less intrusive
+            else:
+                st.session_state.game_over = True
+        else:
+            st.session_state.feedback = {"type": "error", "message": "Falsch! Versuch es nochmal."}
+        
+        st.rerun()
 
-        with col1:
-            if st.button(options[0]):
-                check_answer(options[0])
-            if st.button(options[2]):
-                check_answer(options[2])
+    with col1:
+        if st.button(options[0]):
+            check_answer(options[0])
+        if st.button(options[2]):
+            check_answer(options[2])
 
-        with col2:
-            if st.button(options[1]):
-                check_answer(options[1])
-            if st.button(options[3]):
-                check_answer(options[3])
+    with col2:
+        if st.button(options[1]):
+            check_answer(options[1])
+        if st.button(options[3]):
+            check_answer(options[3])
 
     # Score display
     st.markdown(f"<div class='score-board'>Aktueller Punktestand: {st.session_state.score}</div>", unsafe_allow_html=True)
